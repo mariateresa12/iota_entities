@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    @page { size: A4; margin: 0; }
+
+    html, body {
+      width: 210mm;
+      height: 297mm;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+    }
+
+    .page {
+      position: relative;
+      width: 210mm;
+      height: 297mm;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    .mono { font-family: ui-monospace, Menlo, Consolas, "Courier New", monospace; }
+
+    /* Márgenes del PDF base */
+    :root {
+      --mt: 12mm;
+      --mr: 12mm;
+      --mb: 18mm;
+      --ml: 18mm;
+    }
+
+    /* Lateral */
+    .left-txt {
+      position: absolute;
+      left: 12mm;
+      bottom: calc(var(--mb) + 5mm);
+      transform: rotate(-90deg);
+      transform-origin: left bottom;
+
+      width: 260mm;
+      font-size: 7.5px;
+      color: #444;
+
+      white-space: normal;
+      line-height: 1.15;
+    }
+
+    .left-line {
+      display: block;
+      width: 175mm;              /* ajustar para más/menos texto visible */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* QR */
+    .qr {
+      position: absolute;
+      left: calc(var(--ml) + 5mm);
+      bottom: 6mm;
+      width: 52mm;
+      height: 18mm;
+    }
+    .qr img {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 16mm;
+      height: 16mm;
+    }
+    .qr .txt {
+      position: absolute;
+      left: 18mm;
+      bottom: 0;
+      width: 40mm;
+      font-size: 7.5px;
+      color: #444;
+      line-height: 1.1;
+      word-break: break-all;
+    }
+
+    /* Identificador */
+    .pdfid {
+      position: absolute;
+      right: var(--mr);
+      bottom: 6mm;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9px;
+      color: #444;
+      font-weight: 700;
+      max-width: 130mm;
+      word-break: break-all;
+      text-align: right;
+      line-height: 1.15;
+    }
+    .pdfid .val { font-weight: 400; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Lateral -->
+    <div class="left-txt mono">
+      <span class="left-line">Emisor: {{ issuer_did }}</span>
+      <span class="left-line">Método: {{ kid }}</span>
+      <span class="left-line">Alg: {{ alg }}</span>
+      <span class="left-line">Fecha de creación: {{ date }}</span>
+    </div>
+
+    <!-- Footer: QR -->
+    <div class="qr">
+      <img src="{{ qr_data_uri }}" alt="QR" />
+      <div class="txt mono">
+        {% if qr_content is defined %}{{ qr_content }}{% endif %}
+      </div>
+    </div>
+
+    <!-- Footer: Identificador -->
+    <div class="pdfid">
+      Identificador PDF: <span class="val mono">{{ pdf_id }}</span>
+    </div>
+  </div>
+</body>
+</html>

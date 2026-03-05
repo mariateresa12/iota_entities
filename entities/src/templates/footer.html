@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; }
+    .footer {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0 12mm;
+      font-size: 9px;
+      color: #444;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8mm;
+    }
+    .qr {
+      display: flex;
+      align-items: center;
+      gap: 3mm;
+      min-width: 48mm;
+    }
+    .qr img { width: 16mm; height: 16mm; }
+    .qr .txt {
+      font-size: 7.5px;
+      line-height: 1.1;
+      word-break: break-all;
+      max-width: 28mm;
+    }
+    .pdfid {
+      flex: 1;
+      text-align: right;
+      word-break: break-all;
+      font-weight: 700;
+    }
+    .mono { font-family: ui-monospace, Menlo, Consolas, "Courier New", monospace; font-weight: 400; }
+  </style>
+</head>
+<body>
+  <div class="footer">
+    <div class="qr">
+      <img src="{{ qr_data_uri }}" alt="QR" />
+      <div class="txt mono">{% if qr_content is defined %}{{ qr_content }}{% endif %}</div>
+    </div>
+    <div class="pdfid">
+      Identificador PDF: <span class="mono">{{ pdf_id }}</span>
+    </div>
+  </div>
+</body>
+</html>

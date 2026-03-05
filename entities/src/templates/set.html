@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    @page { size: A4; margin: 12mm 12mm 12mm 18mm;}
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; color: #111; }
+
+    /* Logo arriba derecha */
+    .logo {
+      position: fixed;
+      right: 0;
+      top: 0;
+      width: 35mm;
+      height: auto;
+    }
+
+    /* Contenido */
+    .container { max-width: 180mm; margin: 0 auto; padding-top: 12mm; }
+
+    .title { text-align: center; margin-top: 8mm; }
+    .title h1 { margin: 0; font-size: 16px; font-weight: 700; }
+    .title h2 { margin: 2px 0 0 0; font-size: 12px; font-weight: 700; }
+
+    .section-header {
+      margin-top: 10mm;
+      font-weight: 700;
+      border-bottom: 2px solid #444;
+      padding-bottom: 3px;
+    }
+    .subline {
+      margin-top: 4px;
+      font-weight: 700;
+      border-bottom: 1px solid #888;
+      padding: 3px 0;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr;
+      padding: 4px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    .label { font-size: 9.5px; font-weight: 700; }
+    .value { margin-top: 2px; font-size: 11px; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    thead { display: table-header-group; }
+    th, td { border-bottom: 1px solid #ddd; padding: 4px 4px; vertical-align: top; }
+    th { font-size: 9px; text-align: left; border-top: 1px solid #888; border-bottom: 1px solid #888; }
+    td { font-size: 9.5px; }
+    .muted { color: #444; font-size: 9px; }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .breakall { word-break: break-all; }
+  </style>
+</head>
+
+<body>
+  <!-- Logo arriba derecha -->
+  <img class="logo" src="{{ logo_uri }}" alt="Logo" />
+
+  <div class="container">
+    <div class="title">
+      <h1>Suplemento Europeo al Título</h1>
+      <h2>Diploma Supplement</h2>
+    </div>
+
+    <!-- 1 -->
+    <div class="section-header">1 - Datos identificativos del titulado</div>
+    <div class="row"><div class="label">1.1 - Apellidos</div><div class="value">{{ one.apellidos }}</div></div>
+    <div class="row"><div class="label">1.2 - Nombre(s)</div><div class="value">{{ one.nombre }}</div></div>
+    <div class="row"><div class="label">1.3 - Fecha de nacimiento</div><div class="value">{{ one.fecha_nacimiento }}</div></div>
+    <div class="row"><div class="label">1.4 - Número de identificación</div><div class="value">{{ one.numero_identificacion }}</div></div>
+
+    <!-- 2 -->
+    <div class="section-header">2 - Información sobre la titulación</div>
+    <div class="row"><div class="label">2.1 - Nombre de la titulación</div><div class="value">{{ two.nombre_titulacion }}</div></div>
+    <div class="row"><div class="label">2.2 - Nombre de la institución</div><div class="value">{{ two.nombre_institucion }}</div></div>
+
+    <!-- 3 -->
+    <div class="section-header">3 - Información sobre el nivel de la titulación</div>
+    <div class="row">
+      <div class="label">3.1 - Nivel de la titulación</div>
+      <div class="value">Nivel {{ three.nivel_titulacion }} del MECES.</div>
+    </div>
+    <div class="row">
+      <div class="label">3.2 - Duración oficial del programa</div>
+      <div class="value">{{ three.ects_global }} ECTS. {{ three.duracion_oficial }} años.</div>
+    </div>
+
+    <!-- 4 -->
+    <div class="section-header">4 - Información sobre el contenido y los resultados obtenidos</div>
+    <div class="row"><div class="label">4.1 - Modalidad de estudio</div><div class="value">{{ four.modalidad }}</div></div>
+
+    <div class="subline">4.2 - Descripción del programa</div>
+    <div class="row"><div class="label">Fecha de finalización</div><div class="value">{{ four.descripcion_programa.fecha_fin }}</div></div>
+
+    <div class="subline">Asignaturas</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Asignatura</th><th>Tipo</th><th>ECTS</th><th>Calificación</th><th>Año académico</th><th>Observaciones</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for a in four.descripcion_programa.asignaturas %}
+        <tr>
+          <td>{{ a.nombre }}</td><td>{{ a.tipo }}</td><td>{{ a.ects }}</td><td>{{ a.calificacion }}</td><td>{{ a.anyo_academico }}</td><td>{{ a.observaciones | default(value="") }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="row" style="border-bottom: none;">
+      <div class="label">4.3 - Calificación global del titulado</div>
+      <div class="value">{{ four.calificacion_global }}</div>
+    </div>
+
+    <!-- VC -->
+    <div class="section-header" style="margin-top: 10mm;">Verifiable Credential (JWT/JWS)</div>
+
+    <div class="row">
+      <div class="label">DID del emisor</div>
+      <div class="value breakall">{{ issuer_did }}</div>
+    </div>
+    <div class="row">
+      <div class="label">Método de verificación (kid)</div>
+      <div class="value breakall">{{ kid }}</div>
+    </div>
+    <div class="row">
+      <div class="label">Algoritmo</div>
+      <div class="value">{{ alg }}</div>
+    </div>
+    <div class="row">
+      <div class="label">Firma JWS (b64url)</div>
+      <div class="value mono breakall" style="font-size: 9px;">{{ jws_sig_b64url }}</div>
+    </div>
+
+    <div class="row" style="border-bottom: none;">
+      <div class="label">JWT (completo)</div>
+      <div class="value mono breakall" style="font-size: 8.5px; line-height: 1.25;">{{ jwt_full }}</div>
+    </div>
+  </div>
+</body>
+</html>
