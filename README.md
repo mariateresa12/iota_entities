@@ -26,7 +26,7 @@ iota client faucet
 ```bash
 export IOTA_IDENTITY_PKG_ID=<id_packet>
 ```
-El `<id_packet>` se corresponde con el devuelto en el comando anterior.
+El `<id_packet>` se corresponde con el último valor devuelto en el comando del paso 2: `0x...`.
 
 ### Ejecutar entidades
 **ADVERTENCIA:** En la primera ejecución tardará unos minutos en compilar y se generarán archivos con un tamaño total de aprox. **30GB**.
