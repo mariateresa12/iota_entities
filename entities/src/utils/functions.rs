@@ -1,8 +1,10 @@
 use std::path::{Path,PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::result::Result::Ok;
+
 use base64::Engine as _;
 
-use anyhow::{Context, Ok, anyhow};
+use anyhow::{Context, anyhow};
 use identity_iota::iota::IotaDocument;
 use identity_iota::storage::JwkDocumentExtHybrid;
 use identity_iota::storage::KeyIdMemstore;
@@ -47,9 +49,10 @@ use rand::RngCore;
 
 use product_common::core_client::CoreClientReadOnly as _;
 
-pub const TEST_GAS_BUDGET: u64 = 1_000_000_000;
+const TEST_GAS_BUDGET: u64 = 1_000_000_000;
 pub const CREDENTIAL_DIR_SEGMENTS: [&str; 2] = ["holder","credentials"];
-pub const ISSUER_CREDENTIAL_DIR_SEGMENTS: [&str; 2] = ["issuer","credentials"];
+const ISSUER_CREDENTIAL_DIR_SEGMENTS: [&str; 2] = ["issuer","credentials"];
+const ISSUER_IDX_SEGMENTS: [&str; 2] = ["issuer", "idx"];
 pub const REVOCATION_SERVICE: &str = "#revocation-service";
 
 pub type MemStorage = Storage<JwkMemStore, KeyIdMemstore>;
@@ -231,6 +234,48 @@ pub async fn load_latest_credential(credential_type: &str) -> anyhow::Result<(Pa
   let dir = find_latest_dir(credential_type).await?;
   let jwt = load_credential_from_dir(&dir).await?;
   Ok((dir, jwt))
+}
+
+pub async fn get_last_credential_idx() -> anyhow::Result<u32> {
+  let idx_path = get_dir(ISSUER_IDX_SEGMENTS)?;
+
+  // Si no existe, empezamos en 1
+  let content = match fs::read_to_string(&idx_path).await {
+    Ok(s) => s,
+    Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(1),
+    Err(e) => return Err(e).with_context(|| format!("read idx file failed: {:?}", idx_path)),
+  };
+
+  let value: u32 = content
+    .trim()
+    .parse::<u32>()
+    .map_err(|e| anyhow!("invalid idx file content '{}': {e}", content.trim()))?;
+
+  Ok(value)
+}
+
+pub async fn write_credential_idx(value: u32) -> anyhow::Result<()> {
+  let idx_path = get_dir(ISSUER_IDX_SEGMENTS)?;
+
+  // Comprueba que existe el directorio y, si no, lo crea
+  if let Some(parent) = idx_path.parent() {
+    fs::create_dir_all(parent).await?;
+  }
+
+  // Sobreescribe el número
+  let mut f = fs::OpenOptions::new()
+    .create(true)
+    .write(true)
+    .truncate(true)
+    .open(&idx_path)
+    .await
+    .with_context(|| format!("Could not open {:?}", idx_path))?;
+
+  f.write_all(value.to_string().as_bytes()).await?;
+  f.write_all(b"\n").await?;
+  f.flush().await?;
+
+  Ok(())
 }
 
 // Challenge (16 bytes) en hex con guiones.

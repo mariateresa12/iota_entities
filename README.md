@@ -29,7 +29,7 @@ export IOTA_IDENTITY_PKG_ID=<id_packet>
 El `<id_packet>` se corresponde con el último valor devuelto en el comando del paso 2: `0x...`.
 
 ### Ejecutar entidades
-**ADVERTENCIA:** En la primera ejecución tardará unos minutos en compilar y se generarán archivos con un tamaño total de aprox. **30GB**.
+**ADVERTENCIA:** En la primera ejecución tardará unos minutos en compilar y se generarán archivos con un tamaño total de aproximadamente **30GB**.
 
 **Nota:** Eliminar archivo `~/issuer/cfg` entre ejecuciones.
 
@@ -41,7 +41,14 @@ Dentro de `entities/`, ejecutar:
 ## Base de datos
 El código hace uso de una base de datos **SQLite**. En `entities/data` se incluye un fichero `.db` con datos de ejemplo.
 
+## Prueba
+Una vez están todas las entidades en ejecución, se puede acceder a las APIs:
+- [http://localhost:9001/issuer/](http://localhost:9001/issuer/)
+- [http://localhost:9002/holder/](http://localhost:9002/holder/)
+- [http://localhost:9003/verifier/](http://localhost:9003/verifier/)
+
 ## Dependencias
 Para la ejecución correcta, se necesita tener instalados los siguientes paquetes:
+- `iota`: [Instalación IOTA](https://docs.iota.org/developer/getting-started/install-iota) (recomendación: Homebrew)
 - `wkhtmltopdf` 
 - `qpdf`

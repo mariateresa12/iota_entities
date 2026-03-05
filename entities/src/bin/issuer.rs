@@ -17,7 +17,7 @@ use anyhow::{anyhow, Context};
 
 use entities::utils::{MemStorage};
 use entities::utils::{generate_challenge, now_unix, decode_jwt, create_client_rebuilable, add_revocation_service, update_did_document, get_signer_config, get_dir,
-                      store_issuer_credential, issuer_credential_file_path, load_credential, get_read_only_client};
+                      store_issuer_credential, issuer_credential_file_path, load_credential, get_read_only_client, write_credential_idx, get_last_credential_idx};
 use entities::utils::{CredentialResponse, DIDResponse, CredentialKind, IssueAuthRequest, AuthNonceResponse, StudentParams};
 use entities::utils::REVOCATION_SERVICE;
 use entities::database::{is_student, get_certificate};
@@ -267,7 +267,7 @@ async fn post_new_credential(state: web::Data<IssuerState>, request: web::Path<C
       println!("Holder's DID document successfully validated: {}", holder_doc.id());
   }
 
-  // Identificador único de la credencial creada
+  // Índice único de la credencial creada
   let credential_idx= state.next_id.fetch_add(1, Ordering::Relaxed);
   let id = credential_idx.to_string();
   let ts: u64 = now_unix();
@@ -296,7 +296,12 @@ async fn post_new_credential(state: web::Data<IssuerState>, request: web::Path<C
   };
   
   match store_issuer_credential(credential_idx, &jwt).await {
-    Ok(_p) => {}
+    Ok(_p) => {
+      // Si se almacena correctamente la credencial, actualizamos el índice
+      if let Err(e) = write_credential_idx(credential_idx+1).await {
+        return HttpResponse::InternalServerError().body(format!("credential stored but failed to update idx: {e}"));
+      }
+    }
     Err(e) => {
       if let Some(ioe) = e.downcast_ref::<std::io::Error>() {
         if ioe.kind() == std::io::ErrorKind::AlreadyExists {
@@ -420,7 +425,7 @@ async fn main() -> anyhow::Result<()> {
     issuer_document: RwLock::new(issuer_document),
     issuer_fragment: Arc::new(issuer_fragment),
     issuer_storage: Arc::new(issuer_storage),
-    next_id: AtomicU32::new(1),
+    next_id: AtomicU32::new(get_last_credential_idx().await?),
     nonces: RwLock::new(HashMap::new()),
   });
 
