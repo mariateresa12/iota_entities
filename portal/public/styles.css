@@ -1,0 +1,208 @@
+:root {
+  --um-red: #ba1d2d;
+  --um-red-dark: #8f1622;
+  --ink: #1f2937;
+  --muted: #5f6b7a;
+  --surface: #ffffff;
+  --border: #d3dae2;
+  --ok: #14783d;
+  --error: #b21f2d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Source Sans 3", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 85% 15%, rgba(186, 29, 45, 0.08), transparent 35%),
+    linear-gradient(165deg, #f8fafc 0%, #eef2f7 50%, #f7f9fc 100%);
+  position: relative;
+  overflow-x: hidden;
+}
+
+.bg-shape {
+  position: fixed;
+  z-index: -1;
+  border-radius: 999px;
+  filter: blur(2px);
+}
+
+.bg-shape-a {
+  width: 320px;
+  height: 320px;
+  background: rgba(186, 29, 45, 0.08);
+  top: -120px;
+  right: -80px;
+}
+
+.bg-shape-b {
+  width: 280px;
+  height: 280px;
+  background: rgba(31, 41, 55, 0.06);
+  bottom: -120px;
+  left: -100px;
+}
+
+.topbar {
+  background: linear-gradient(95deg, var(--um-red-dark), var(--um-red));
+  color: #fff;
+  padding: 22px 20px;
+  border-bottom: 4px solid rgba(255, 255, 255, 0.2);
+}
+
+.brand-wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.um-logo {
+  width: 86px;
+  height: auto;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  padding: 6px;
+}
+
+.brand-kicker {
+  margin: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+h1 {
+  margin: 4px 0 0;
+  font-family: "Libre Baskerville", serif;
+  font-size: 1.35rem;
+  line-height: 1.35;
+}
+
+.container {
+  padding: 36px 20px 50px;
+}
+
+.card {
+  max-width: 520px;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 16px 38px rgba(31, 41, 55, 0.12);
+  padding: 28px;
+  animation: rise 420ms ease-out;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+h2 {
+  margin: 0;
+  font-family: "Libre Baskerville", serif;
+  font-size: 1.2rem;
+}
+
+.subtitle {
+  margin: 10px 0 18px;
+  color: var(--muted);
+}
+
+form {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #b6c2d1;
+  border-radius: 10px;
+  font: inherit;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--um-red);
+  box-shadow: 0 0 0 3px rgba(186, 29, 45, 0.16);
+}
+
+button {
+  margin-top: 8px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(95deg, var(--um-red-dark), var(--um-red));
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  padding: 11px 14px;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 160ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(186, 29, 45, 0.3);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+.result {
+  min-height: 1.4em;
+  margin: 16px 0 0;
+  font-weight: 700;
+}
+
+.result.ok {
+  color: var(--ok);
+}
+
+.result.error {
+  color: var(--error);
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+
+  .brand-wrap {
+    gap: 12px;
+  }
+
+  .um-logo {
+    width: 72px;
+  }
+
+  h1 {
+    font-size: 1.05rem;
+  }
+
+  .card {
+    padding: 22px 16px;
+  }
+}

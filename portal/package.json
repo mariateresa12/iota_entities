@@ -1,0 +1,12 @@
+{
+  "name": "portal-verificacion-credenciales",
+  "version": "1.0.0",
+  "description": "Portal de verificación de credenciales",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

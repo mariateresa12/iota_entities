@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verificación de credenciales | Universidad de Murcia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-shape bg-shape-a" aria-hidden="true"></div>
+  <div class="bg-shape bg-shape-b" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand-wrap">
+      <img src="assets/logoUMU.jpg" alt="Universidad de Murcia" class="um-logo">
+      <div>
+        <p class="brand-kicker">Universidad de Murcia</p>
+        <h1>Portal de verificación de credenciales</h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card" aria-labelledby="form-title">
+      <h2 id="form-title">Validar credencial</h2>
+      <p class="subtitle">Introduzca los datos para comprobar la validez de la credencial.</p>
+
+      <form id="validation-form" novalidate>
+        <label for="identificador">Identificador</label>
+        <input id="identificador" name="identificador" type="text" autocomplete="off" required>
+
+        <label for="codificacion">Codificacion</label>
+        <input id="codificacion" name="codificacion" type="text" autocomplete="off" required>
+
+        <button type="submit" id="btn-validar">Validar</button>
+      </form>
+
+      <p id="result-message" class="result" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
