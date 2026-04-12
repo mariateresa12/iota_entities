@@ -50,5 +50,3 @@ Una vez están todas las entidades en ejecución, se puede acceder a las APIs:
 ## Dependencias
 Para la ejecución correcta, se necesita tener instalados los siguientes paquetes:
 - `iota`: [Instalación IOTA](https://docs.iota.org/developer/getting-started/install-iota) (recomendación: Homebrew)
-- `wkhtmltopdf` 
-- `qpdf`
