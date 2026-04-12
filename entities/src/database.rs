@@ -8,7 +8,7 @@ pub fn is_student(id: &str) -> sqlite::Result<bool> {
 
   let query = r#"
       SELECT EXISTS(
-        SELECT 1 FROM estudiantes WHERE num_identificacion = ?
+        SELECT 1 FROM estudiantes WHERE email = ?
       ) AS exist;
   "#;
 
@@ -24,7 +24,7 @@ pub fn is_student(id: &str) -> sqlite::Result<bool> {
   }
 }
 
-pub fn get_certificate(student_id: &str, degree: &str) -> Result<serde_json::Value> {
+pub fn get_certificate(student_email: &str, degree: &str) -> Result<serde_json::Value> {
   let connection = Connection::open(DATABASE)?;
 
   let query = r#"
@@ -33,6 +33,7 @@ pub fn get_certificate(student_id: &str, degree: &str) -> Result<serde_json::Val
       'apellidos', e.apellidos,
       'nombre', e.nombre,
       'fecha_nacimiento', e.nacimiento,
+      'email', e.email,
       'numero_identificacion', e.num_identificacion
     ),
     'informacion_de_la_titulacion', json_object(
@@ -78,16 +79,16 @@ pub fn get_certificate(student_id: &str, degree: &str) -> Result<serde_json::Val
     )
   ) AS titulo_universitario_json
   FROM estudiantes e
-  JOIN expedientes ex ON ex.estudiante_id = e.estudiante_id
+  JOIN expedientes ex ON ex.estudiante_email = e.email
   JOIN titulaciones t ON t.titulacion_id = ex.titulacion_id
-  WHERE e.num_identificacion = ?
+  WHERE e.email = ?
     AND t.nombre = ?
   LIMIT 1;
   "#;
 
   let mut statement = connection.prepare(query)?;
 
-  statement.bind((1, student_id))?;
+  statement.bind((1, student_email))?;
   statement.bind((2, degree))?;
 
   match statement.next()? {

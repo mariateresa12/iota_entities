@@ -168,11 +168,11 @@ pub async fn find_latest_dir(credential_type: &str) -> anyhow::Result<PathBuf> {
   Ok(base.join(best.dir))
 }
 
-pub async fn store_issuer_credential(credential_index: u32, jwt: &Jwt,) -> anyhow::Result<PathBuf> {
+pub async fn store_issuer_credential(credential_id: &str, jwt: &Jwt,) -> anyhow::Result<PathBuf> {
   let base: PathBuf = get_dir(ISSUER_CREDENTIAL_DIR_SEGMENTS)?;
   fs::create_dir_all(&base).await?;
 
-  let file_path: PathBuf = base.join(format!("{}.jwt", credential_index));
+  let file_path: PathBuf = base.join(format!("{}.jwt", credential_id));
 
   let mut f = fs::OpenOptions::new()
     .create_new(true)
@@ -188,10 +188,17 @@ pub async fn store_issuer_credential(credential_index: u32, jwt: &Jwt,) -> anyho
   Ok(file_path)
 }
 
-pub fn issuer_credential_file_path(index: u32) -> anyhow::Result<PathBuf> {
+pub fn issuer_credential_file_path(id: &str) -> anyhow::Result<PathBuf> {
   let base = get_dir(ISSUER_CREDENTIAL_DIR_SEGMENTS)?;
-  Ok(base.join(format!("{}.jwt", index)))
+  Ok(base.join(format!("{}.jwt", id)))
 }
+
+pub fn get_new_credential_id(idx: u32, ts: u64) -> anyhow::Result<String> {
+  let rand: u32 = OsRng.next_u32();
+  let id: String = format!("umu{}_ts{}_r{:08x}", idx, ts, rand);
+  Ok(id)
+}
+
 
 pub fn now_unix() -> u64 {
   use std::time::{SystemTime, UNIX_EPOCH};

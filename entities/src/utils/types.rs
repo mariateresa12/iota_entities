@@ -19,7 +19,7 @@ pub struct AuthNonceResponse {
 #[derive(Debug, Clone, Deserialize, IntoParams)]
 pub struct StudentParams {
   // Identificador del estudiante (ej: "100001")
-  pub student_id: String,
+  pub student_email: String,
 
   // Titulación solicitada (ej: "Grado en Ingeniería Informática")
   pub degree_requested: String,
@@ -55,7 +55,7 @@ pub struct CredentialUpdateRequest {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct RevocationResponse {
   pub revoked: bool,
-  pub index: u32,
+  pub id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]

@@ -17,7 +17,6 @@
       position: relative;
       width: 210mm;
       height: 297mm;
-      overflow: hidden;
       background: transparent;
     }
 
@@ -34,68 +33,67 @@
     /* Lateral */
     .left-txt {
       position: absolute;
-      left: 12mm;
+      left: 14mm;
       bottom: calc(var(--mb) + 5mm);
       transform: rotate(-90deg);
       transform-origin: left bottom;
 
-      width: 260mm;
-      font-size: 7.5px;
+      width: 275mm;
+      font-size: 7px;
       color: #444;
 
       white-space: normal;
-      line-height: 1.15;
+      line-height: 1;
     }
 
     .left-line {
       display: block;
-      width: 175mm;              /* ajustar para más/menos texto visible */
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      width: 275mm;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      padding: 0;
+      margin: 0;
     }
 
     /* QR */
     .qr {
       position: absolute;
-      left: calc(var(--ml) + 5mm);
+      left: var(--ml);
       bottom: 6mm;
-      width: 52mm;
-      height: 18mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5mm;
     }
     .qr img {
-      position: absolute;
-      left: 0;
-      bottom: 0;
-      width: 16mm;
-      height: 16mm;
+      width: 18mm;
+      height: 18mm;
     }
     .qr .txt {
-      position: absolute;
-      left: 18mm;
-      bottom: 0;
-      width: 40mm;
-      font-size: 7.5px;
+      font-size: 8px;
       color: #444;
-      line-height: 1.1;
-      word-break: break-all;
+      line-height: 1.2;
+      white-space: nowrap;
+      text-align: center;
+      width: 24mm;
     }
 
     /* Identificador */
-    .pdfid {
+    .footer-meta {
       position: absolute;
       right: var(--mr);
       bottom: 6mm;
       font-family: Arial, Helvetica, sans-serif;
       font-size: 9px;
       color: #444;
-      font-weight: 700;
-      max-width: 130mm;
-      word-break: break-all;
+      font-weight: 400;
       text-align: right;
-      line-height: 1.15;
+      line-height: 1.3;
     }
-    .pdfid .val { font-weight: 400; }
+    .footer-meta .row-label { font-weight: 700; display: block; }
+    .footer-meta .val { font-weight: 400; display: inline; }
+    .footer-meta div { margin: 0.5mm 0; padding: 0; }
   </style>
 </head>
 <body>
@@ -116,9 +114,10 @@
       </div>
     </div>
 
-    <!-- Footer: Identificador -->
-    <div class="pdfid">
-      Identificador PDF: <span class="val mono">{{ pdf_id }}</span>
+    <!-- Footer: Identificador + codificación -->
+    <div class="footer-meta">
+      <div><span class="row-label">identificador:</span> <span class="val mono">{{ pdf_id }}</span></div>
+      <div><span class="row-label">codificación:</span> <span class="val mono">{{ codificacion }}</span></div>
     </div>
   </div>
 </body>

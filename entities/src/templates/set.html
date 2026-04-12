@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <style>
-    @page { size: A4; margin: 12mm 12mm 12mm 18mm;}
-    body { font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; color: #111; }
+    @page { size: A4; margin: 12mm 12mm 12mm 18mm; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; color: #111; margin: 0; padding: 0; }
 
     /* Logo arriba derecha */
     .logo {
@@ -114,31 +114,6 @@
     <div class="row" style="border-bottom: none;">
       <div class="label">4.3 - Calificación global del titulado</div>
       <div class="value">{{ four.calificacion_global }}</div>
-    </div>
-
-    <!-- VC -->
-    <div class="section-header" style="margin-top: 10mm;">Verifiable Credential (JWT/JWS)</div>
-
-    <div class="row">
-      <div class="label">DID del emisor</div>
-      <div class="value breakall">{{ issuer_did }}</div>
-    </div>
-    <div class="row">
-      <div class="label">Método de verificación (kid)</div>
-      <div class="value breakall">{{ kid }}</div>
-    </div>
-    <div class="row">
-      <div class="label">Algoritmo</div>
-      <div class="value">{{ alg }}</div>
-    </div>
-    <div class="row">
-      <div class="label">Firma JWS (b64url)</div>
-      <div class="value mono breakall" style="font-size: 9px;">{{ jws_sig_b64url }}</div>
-    </div>
-
-    <div class="row" style="border-bottom: none;">
-      <div class="label">JWT (completo)</div>
-      <div class="value mono breakall" style="font-size: 8.5px; line-height: 1.25;">{{ jwt_full }}</div>
     </div>
   </div>
 </body>

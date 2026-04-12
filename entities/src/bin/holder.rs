@@ -10,8 +10,6 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use anyhow::{Context, anyhow};
-use rand::rngs::OsRng;
-use rand::RngCore;
 
 use tokio::io::{AsyncWriteExt};
 use tokio::fs;
@@ -87,34 +85,29 @@ async fn list_credentials_from_fs(base_dir: &Path) -> anyhow::Result<Vec<Credent
   Ok(out)
 }
 
-async fn store_credential(id: &str, credential_jwt: &Jwt, ts:u64) -> anyhow::Result<PathBuf> {
-  let base_dir: PathBuf = get_dir(CREDENTIAL_DIR_SEGMENTS)?;
-  fs::create_dir_all(&base_dir).await?;
+async fn store_credential(id: &str, credential_jwt: &Jwt) -> anyhow::Result<PathBuf> {
+    let base_dir: PathBuf = get_dir(CREDENTIAL_DIR_SEGMENTS)?;
+    fs::create_dir_all(&base_dir).await?;
 
-  let dir_path: PathBuf = loop {
-    let rand_u32: u32 = OsRng.next_u32();
-    let folder_name: String = format!("idx{}_ts{}_r{:08x}", id, ts, rand_u32);
-    let candidate: PathBuf = base_dir.join(folder_name);
+    let dir_path: PathBuf = base_dir.join(id);
+    fs::create_dir_all(&dir_path)
+        .await
+        .with_context(|| format!("The folder {:?} could not be created", dir_path))?;
 
-    match fs::create_dir(&candidate).await {
-      Ok(_) => break candidate,
-      Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
-      Err(e) => return Err(e).with_context(|| format!("The folder {:?} could not be created", candidate)),
-    }
-  };
+    let jwt_path: PathBuf = dir_path.join("credential.jwt");
+    let mut jwt_file = fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&jwt_path)
+        .await
+        .with_context(|| format!("The file {:?} could not be created", jwt_path))?;
 
-  let jwt_path: PathBuf = dir_path.join("credential.jwt");
-  let mut jwt_file = fs::OpenOptions::new()
-    .write(true)
-    .create_new(true)
-    .open(&jwt_path)
-    .await?;
+    jwt_file.write_all(credential_jwt.as_str().as_bytes()).await?;
+    jwt_file.write_all(b"\n").await?;
+    jwt_file.flush().await?;
 
-  jwt_file.write_all(credential_jwt.as_str().as_bytes()).await?;
-  jwt_file.write_all(b"\n").await?;
-  jwt_file.flush().await?;
-
-  Ok(dir_path)
+    Ok(dir_path)
 }
 
 async fn create_proof_auth(did_document: &IotaDocument, fragment: &str, storage: &MemStorage, challenge: &str) -> anyhow::Result<Jws> {
@@ -150,7 +143,7 @@ async fn create_presentation(did_document: &IotaDocument, fragment: &str, storag
   Ok(presentation_jwt)
 }
 
-pub async fn store_pdf(dir: &Path, jwt: &str, pdf_id: String, ts: u64) -> anyhow::Result<PathBuf> {
+pub async fn store_pdf(dir: &Path, jwt: &str, pdf_id: String) -> anyhow::Result<PathBuf> {
   // Decodificar header + payload del JWT
   let decoded: serde_json::Value = decode_jwt(jwt).context("decode_jwt failed")?;
 
@@ -185,6 +178,13 @@ pub async fn store_pdf(dir: &Path, jwt: &str, pdf_id: String, ts: u64) -> anyhow
     return Err(anyhow!("JWT payload does not contain 'iss' (issuer DID)"));
   }
 
+  let ts: u64 = pdf_id.clone()
+    .split("_ts")
+    .nth(1)
+    .and_then(|s| s.split("_r").next())
+    .ok_or_else(|| anyhow::anyhow!("invalid credential_id format"))?
+    .parse::<u64>()?;
+
   // JSON para el PDF
   let cert = payload
     .get("vc")
@@ -196,7 +196,7 @@ pub async fn store_pdf(dir: &Path, jwt: &str, pdf_id: String, ts: u64) -> anyhow
   let json_str: String = serde_json::to_string(&cert).context("serialize certificate failed")?;
 
   // Path del PDF
-  let out_pdf: PathBuf = dir.join(format!("set_{}.pdf", pdf_id));
+  let out_pdf: PathBuf = dir.join(format!("{}.pdf", pdf_id));
 
   // Generación en thread blocking
   let dir_cl = dir.to_path_buf();
@@ -254,7 +254,7 @@ async fn get_did_document(state: web::Data<HolderState>) -> impl Responder {
   tag="Holder",
   params(
     ("request" = CredentialKind, Path, description="Tipo de credencial a emitir."),
-    ("student_id" = String, Query, description="Identificador del estudiante en la BD (ej: \"100001\").", example="100001"),
+    ("student_email" = String, Query, description="Email del estudiante (ej: \"mario@um.es\").", example="mario@um.es"),
     ("degree_requested" = String, Query, description="Titulación solicitada (ej: \"Grado en Ingeniería Informática\").", example="Grado en Ingeniería Informática")
   ),
   responses(
@@ -305,10 +305,10 @@ async fn post_new_credential(state: web::Data<HolderState>, request: web::Path<C
   let issue = IssueAuthRequest { did_document: did_document_json, challenge: nonce.challenge.clone(), proof_jws: proof_auth.as_str().to_string()};
 
   let url = format!(
-    "{}/new_credential/{}?student_id={}&degree_requested={}",
+    "{}/new_credential/{}?student_email={}&degree_requested={}",
     ISSUER_BASE_URL,
     request.as_str(),
-    urlencoding::encode(params.student_id.as_str()),
+    urlencoding::encode(params.student_email.as_str()),
     urlencoding::encode(params.degree_requested.as_str())
   );
   
@@ -330,8 +330,8 @@ async fn post_new_credential(state: web::Data<HolderState>, request: web::Path<C
 
   // Guardar JWT en disco
   let jwt = Jwt::new(cred.credential_jwt.clone());
-  let ts = cred.created_at;
-  let dir = match store_credential(cred.id.as_str(), &jwt, ts.clone()).await {
+  // let ts = cred.created_at;
+  let dir = match store_credential(cred.id.as_str(), &jwt).await {
     Ok(p) => p,
     Err(e) => return HttpResponse::InternalServerError().body(format!("store_credential failed: {e}")),
   };
@@ -343,7 +343,7 @@ async fn post_new_credential(state: web::Data<HolderState>, request: web::Path<C
   // Generar y almacenar pdf
 let pdf_id: String = Path::new(&dir).file_name().and_then(|s| s.to_str()).unwrap_or("set_pdf").to_string();
 
-let _pdf_path = match store_pdf(dir.as_path(),cred.credential_jwt.as_str(),pdf_id, ts).await {
+let _pdf_path = match store_pdf(dir.as_path(),cred.credential_jwt.as_str(),pdf_id).await {
   Ok(p) => p,
   Err(e) => return HttpResponse::InternalServerError().body(format!("store_pdf failed: {e}")),
 };
@@ -353,9 +353,9 @@ let _pdf_path = match store_pdf(dir.as_path(),cred.credential_jwt.as_str(),pdf_i
 
 #[utoipa::path(
   post,
-  path="/revoke_credential/{index}",
+  path="/revoke_credential/{id}",
   tag="Holder",
-  params(("index" = u32, Path, description="Índice de la credencial")),
+  params(("id" = String, Path, description="Identificador de la credencial")),
   responses(
     (status=200, description="Credential revoked", body=RevocationResponse),
     (status=400, description="Revocation failed"),
@@ -363,8 +363,8 @@ let _pdf_path = match store_pdf(dir.as_path(),cred.credential_jwt.as_str(),pdf_i
     (status=502, description="Issuer not available / error")
   )
 )]
-#[post("/revoke_credential/{index}")]
-async fn post_revoke_credential(state: web::Data<HolderState>, index: web::Path<u32>) -> impl Responder {
+#[post("/revoke_credential/{id}")]
+async fn post_revoke_credential(state: web::Data<HolderState>, id: web::Path<String>) -> impl Responder {
   // Pedir nonce al issuer
   let nonce_url = format!("{}/auth/nonce", ISSUER_BASE_URL);
   let nonce_resp = match state.http.get(nonce_url).send().await {
@@ -402,10 +402,10 @@ async fn post_revoke_credential(state: web::Data<HolderState>, index: web::Path<
   // Enviar solicitud autenticada al issuer
   let issue = IssueAuthRequest { did_document: did_document_json, challenge: nonce.challenge.clone(), proof_jws: proof_auth.as_str().to_string()};
   
-  let index: u32 = index.into_inner();
+  let id: String = id.into_inner();
 
   // Enviar solicitud al issuer
-  let revocation_url = format!("{}/revoke_credential/{}", ISSUER_BASE_URL, index);
+  let revocation_url = format!("{}/revoke_credential/{}", ISSUER_BASE_URL, id);
   let resp = match state.http.post(revocation_url).json(&issue).send().await {
     Ok(r) => r,
     Err(e) => return HttpResponse::BadGateway().body(format!("issuer revocation request failed: {e}")),
@@ -424,7 +424,7 @@ async fn post_revoke_credential(state: web::Data<HolderState>, index: web::Path<
     return HttpResponse::BadGateway().body(format!("issuer revocation error {}: {}", status, txt));
   }
 
-  HttpResponse::Ok().json(RevocationResponse { revoked: true, index })
+  HttpResponse::Ok().json(RevocationResponse { revoked: true, id })
 }
 
 #[utoipa::path(

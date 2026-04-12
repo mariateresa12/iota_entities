@@ -28,12 +28,13 @@
       word-break: break-all;
       max-width: 28mm;
     }
-    .pdfid {
+    .meta {
       flex: 1;
       text-align: right;
       word-break: break-all;
-      font-weight: 700;
+      font-weight: 400;
     }
+    .meta .label { font-weight: 700; }
     .mono { font-family: ui-monospace, Menlo, Consolas, "Courier New", monospace; font-weight: 400; }
   </style>
 </head>
@@ -43,8 +44,9 @@
       <img src="{{ qr_data_uri }}" alt="QR" />
       <div class="txt mono">{% if qr_content is defined %}{{ qr_content }}{% endif %}</div>
     </div>
-    <div class="pdfid">
-      Identificador PDF: <span class="mono">{{ pdf_id }}</span>
+    <div class="meta">
+      <div><span class="label">identificador:</span> <span class="mono">{{ pdf_id }}</span></div>
+      <div><span class="label">codificación:</span> <span class="mono">{{ codificacion }}</span></div>
     </div>
   </div>
 </body>

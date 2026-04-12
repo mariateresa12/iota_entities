@@ -17,7 +17,8 @@ use anyhow::{anyhow, Context};
 
 use entities::utils::{MemStorage};
 use entities::utils::{generate_challenge, now_unix, decode_jwt, create_client_rebuilable, add_revocation_service, update_did_document, get_signer_config, get_dir,
-                      store_issuer_credential, issuer_credential_file_path, load_credential, get_read_only_client, write_credential_idx, get_last_credential_idx};
+                      store_issuer_credential, issuer_credential_file_path, load_credential, get_read_only_client, write_credential_idx, get_last_credential_idx,
+                      get_new_credential_id};
 use entities::utils::{CredentialResponse, DIDResponse, CredentialKind, IssueAuthRequest, AuthNonceResponse, StudentParams};
 use entities::utils::REVOCATION_SERVICE;
 use entities::database::{is_student, get_certificate};
@@ -80,10 +81,10 @@ pub async fn validate_proof_auth(proof_jws: &str, challenge: &str, holder_doc: &
   Ok(())
 }
 
-async fn create_credential(credential_index: u32, num_id: &str, titulacion: &str, holder_document: IotaDocument,
+async fn create_credential(idx: u32, credential_id: &str, email: &str, titulacion: &str, holder_document: IotaDocument,
       issuer_document: &IotaDocument, issuer_fragment: &str, issuer_storage: &MemStorage,) -> anyhow::Result<Jwt> {
   
-  let cert = get_certificate(num_id, titulacion)?;
+  let cert = get_certificate(email, titulacion)?;
 
   let subject: Subject = Subject::from_json_value(json!({
       "id": holder_document.id().as_str(),
@@ -91,13 +92,13 @@ async fn create_credential(credential_index: u32, num_id: &str, titulacion: &str
   }))?;
 
   let service_url = issuer_document.id().to_url().join(REVOCATION_SERVICE)?;
-  let status: Status = RevocationBitmapStatus::new(service_url, credential_index).into();
+  let status: Status = RevocationBitmapStatus::new(service_url, idx).into();
 
   // Build credential using subject above and issuer.
   let credential: Credential = CredentialBuilder::default()
-    .id(Url::parse("https://example.edu/credentials/3732")?)
+    .id(Url::parse(&format!("http://localhost:3000/{}", credential_id))?)
     .issuer(Url::parse(issuer_document.id().as_str())?)
-    .type_("UniversityDegreeCredential")
+    .type_("UniversityCredential")
     .status(status)
     .subject(subject)
     .build()?;
@@ -228,14 +229,14 @@ async fn get_auth_nonce(state: web::Data<IssuerState>) -> impl Responder {
   tag="Issuer",
   params(
     ("request" = CredentialKind, Path, description="Tipo de credencial a emitir."),
-    ("student_id" = String, Query, description="Identificador del estudiante en la BD (ej: \"100001\").", example="100001"),
+    ("student_email" = String, Query, description="Email del estudiante (ej: \"mario@um.es\").", example="mario@um.es"),
     ("degree_requested" = String, Query, description="Titulación solicitada (ej: \"Grado en Ingeniería Informática\").", example="Grado en Ingeniería Informática")
   ),
   request_body=IssueAuthRequest,
   responses(
     (status=201, description="Credential issued", body=CredentialResponse),
     (status=400, description="Invalid request / auth failed"),
-    (status=404, description="Unknown student_id")
+    (status=404, description="Unknown student_email")
   )
 )]
 #[post("/new_credential/{request}")]
@@ -267,38 +268,44 @@ async fn post_new_credential(state: web::Data<IssuerState>, request: web::Path<C
       println!("Holder's DID document successfully validated: {}", holder_doc.id());
   }
 
-  // Índice único de la credencial creada
-  let credential_idx= state.next_id.fetch_add(1, Ordering::Relaxed);
-  let id = credential_idx.to_string();
   let ts: u64 = now_unix();
+  let idx: u32 = state.next_id.fetch_add(1, Ordering::Relaxed);
+  // Índice único de la credencial creada
+  let credential_id: String = match get_new_credential_id(idx, ts) {
+    Ok(id) => id,
+    Err(e) => {
+        return HttpResponse::InternalServerError()
+            .body(format!("failed to generate credential id: {e}"));
+    }
+  };
 
-  let student_id: &str = params.student_id.as_str();
+  let student_email: &str = params.student_email.as_str();
   let degree_requested: &str = params.degree_requested.as_str();
 
   // Comprueba que existe el estudiante
-  let exists: bool = match is_student(student_id) {
+  let exists: bool = match is_student(student_email) {
     Ok(v) => v,
-    Err(e) => return HttpResponse::InternalServerError().body(format!("db error checking student_id: {e}")),
+    Err(e) => return HttpResponse::InternalServerError().body(format!("db error checking student_email: {e}")),
   };
 
   if !exists {
-    return HttpResponse::NotFound().body("unknown student_id");
+    return HttpResponse::NotFound().body("unknown student_email");
   }
 
   // Crea la credencial
   let jwt: Jwt = {
     let doc = state.issuer_document.read().await;
-    match create_credential(credential_idx, student_id, degree_requested, holder_doc,
+    match create_credential(idx, credential_id.as_str(), student_email, degree_requested, holder_doc,
             &doc, state.issuer_fragment.as_str(), state.issuer_storage.as_ref()).await {
       Ok(jwt) => jwt,
       Err(e) => {return HttpResponse::InternalServerError().body(format!("credential creation failed: {e}"));}
     }
   };
   
-  match store_issuer_credential(credential_idx, &jwt).await {
+  match store_issuer_credential(credential_id.as_str(), &jwt).await {
     Ok(_p) => {
       // Si se almacena correctamente la credencial, actualizamos el índice
-      if let Err(e) = write_credential_idx(credential_idx+1).await {
+      if let Err(e) = write_credential_idx(idx+1).await {
         return HttpResponse::InternalServerError().body(format!("credential stored but failed to update idx: {e}"));
       }
     }
@@ -314,27 +321,27 @@ async fn post_new_credential(state: web::Data<IssuerState>, request: web::Path<C
 
   let credential_decoded: Option<Value> = decode_jwt(jwt.as_str()).ok();
 
-  HttpResponse::Created().json(CredentialResponse { id, credential_jwt: jwt.as_str().to_string(), credential_decoded, created_at: ts })
+  HttpResponse::Created().json(CredentialResponse { id: credential_id, credential_jwt: jwt.as_str().to_string(), credential_decoded, created_at: ts })
 }
 
 // Petición para revocar una nueva credencial
 #[utoipa::path(
   post,
-  path="/revoke_credential/{index}",
+  path="/revoke_credential/{id}",
   tag="Issuer",
-  params(("index" = u32, Path, description="Índice de la credencial")),
+  params(("id" = String, Path, description="Identificador de la credencial")),
   request_body = IssueAuthRequest,
   responses(
     (status=200, description="Credential revoked"),
     (status=400, description="Revocation failed")
   )
 )]
-#[post("/revoke_credential/{index}")]
-async fn post_revoke_credential(state: web::Data<IssuerState>, index: web::Path<u32>, body: web::Json<IssueAuthRequest>) -> impl Responder {
-  let index: u32 = index.into_inner();
+#[post("/revoke_credential/{id}")]
+async fn post_revoke_credential(state: web::Data<IssuerState>, id: web::Path<String>, body: web::Json<IssueAuthRequest>) -> impl Responder {
+  let credential_id: String = id.into_inner();
 
   // Comprobar que existe el fichero de credencial
-  let cred_path = match issuer_credential_file_path(index) {
+  let cred_path = match issuer_credential_file_path(&credential_id) {
     Ok(p) => p,
     Err(e) => return HttpResponse::InternalServerError().body(format!("path error: {e}")),
   };
@@ -376,8 +383,16 @@ async fn post_revoke_credential(state: web::Data<IssuerState>, index: web::Path<
 
   // Revocar 
   let mut doc = state.issuer_document.write().await;
+  let idx: u32 = match credential_id
+    .strip_prefix("umu")
+    .and_then(|s| s.split("_ts").next())
+    .and_then(|s| s.parse::<u32>().ok())
+  {
+      Some(v) => v,
+      None => return HttpResponse::BadRequest().body("invalid credential_id format"),
+  };
 
-  if let Err(e) = doc.revoke_credentials(REVOCATION_SERVICE, &[index]) {
+  if let Err(e) = doc.revoke_credentials(REVOCATION_SERVICE, &[idx]) {
     return HttpResponse::BadRequest().body(format!("revocation failed: {e}"));
   }
 
