@@ -1,6 +1,6 @@
 [package]
 name = "entities"
-version = "1.4.0"
+version = "1.5.0"
 authors = ["Maria Teresa Guillen"]
 edition = "2021"
 publish = false
