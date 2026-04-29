@@ -31,7 +31,7 @@ El `<id_packet>` se corresponde con el último valor devuelto en el comando del 
 ### Ejecutar entidades
 **ADVERTENCIA:** En la primera ejecución tardará unos minutos en compilar y se generarán archivos con un tamaño total de aproximadamente **30GB**.
 
-**Nota:** Eliminar archivo `~/issuer/cfg` entre ejecuciones.
+**Nota:** Mientras no existe persistencia de claves, se elimina automáticamente el archivo `~/issuer/cfg` entre ejecuciones.
 
 Dentro de `entities/`, ejecutar:
 - `cargo run --bin issuer`

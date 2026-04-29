@@ -433,6 +433,11 @@ struct IssuerApiDoc;
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
   let path = get_dir(ISSUER_CFG_DIR_SEGMENTS)?;
+
+  // Quitar línea de código tras implementar persistencia de claves
+  // Elimina el archivo cfg de configuración mientras no existe persistencia de claves
+  if path.is_file() {std::fs::remove_file(&path)?;}
+
   let (issuer_document, issuer_fragment, issuer_storage, issuer_cfg) = create_client_rebuilable(&path).await?;
   let issuer_document = add_revocation_service(&issuer_document, &issuer_storage, &issuer_cfg).await?;
 
